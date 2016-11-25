@@ -2,6 +2,7 @@ package com.lentzos.nic.nerdlauncher;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Bundle;
@@ -77,13 +78,16 @@ public class NerdLauncherFragment extends Fragment {
 
     //define a viewholder that displays an activity's label.
     //store the activity's ResolveInfo in a member variable for later use.
-    private class ActivityHolder extends RecyclerView.ViewHolder {
+    //now implement onclicklistener so we can select an activity.
+    private class ActivityHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
         private ResolveInfo mResolveInfo;
         private TextView mNameTextView;
 
         public ActivityHolder(View itemView) {
             super(itemView);
             mNameTextView = (TextView) itemView;
+            //set onclicklistener
+            mNameTextView.setOnClickListener(this);
         }
 
         public void bindActivity(ResolveInfo resolveInfo) {
@@ -91,6 +95,22 @@ public class NerdLauncherFragment extends Fragment {
             PackageManager pm = getActivity().getPackageManager();
             String appName = mResolveInfo.loadLabel(pm).toString();
             mNameTextView.setText(appName);
+        }
+
+        //implement onClick
+        //sending an action as part of an explicit intent.
+        @Override
+        public void onClick(View v) {
+            ActivityInfo activityInfo = mResolveInfo.activityInfo;
+            //Get class and package name from the metadata and use them to create an explicit intent using the intent method.
+            //public Intent setClassName(String packageName, String className)
+            //before, we used an Intent constructor that accepts a Context and Class name. This created a ComponentName
+            //which the Intent really needs.
+            Intent i = new Intent(Intent.ACTION_MAIN).setClassName(activityInfo.applicationInfo.packageName, activityInfo.name)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            //.addFlags(Intent.Fl...) creates a new task for programs you run from the launcher, so when you
+            //view them in the overview screen you can return to them directly (or clear them).
+            startActivity(i);
         }
     }
 
