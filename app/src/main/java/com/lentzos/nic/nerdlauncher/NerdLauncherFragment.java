@@ -1,5 +1,6 @@
 package com.lentzos.nic.nerdlauncher;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -11,7 +12,10 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -30,6 +34,7 @@ public class NerdLauncherFragment extends Fragment {
     public static NerdLauncherFragment newInstance() {
         return new NerdLauncherFragment();
     }
+
     //Override onCreateView() to stash a reference to the RecyclerView object mRecyclerView in a member variable.
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -43,6 +48,7 @@ public class NerdLauncherFragment extends Fragment {
         setupAdapter();
         return v;
     }
+
     //Call setupAdapter() to create a RecyclerView.Adapter instance and set it on the RecyclerView object.
     //Firstly it will just generate a list of application data.
     //Create an implicit intent and get a list of activities that match the intent from PackageManager.
@@ -52,7 +58,66 @@ public class NerdLauncherFragment extends Fragment {
 
         PackageManager pm = getActivity().getPackageManager();
         List<ResolveInfo> activities = pm.queryIntentActivities(startupIntent, 0);
+        //Sort the ResolveInfo objects returned from the package manager alphabetically by label
+        //using the resolvinfo.loadlabel method.
+        Collections.sort(activities, new Comparator<ResolveInfo>() {
+            public int compare(ResolveInfo a, ResolveInfo b) {
+                PackageManager pm = getActivity().getPackageManager();
+                return String.CASE_INSENSITIVE_ORDER.compare(
+                        a.loadLabel(pm).toString(),
+                        b.loadLabel(pm).toString());
+            }
+        });
 
         Log.i(TAG, "Found " + activities.size() + " activities.");
+        //update setupadapter() to create an instance of ActivityAdapter and set it as the
+        //recyclerview's adapter.
+        mRecyclerView.setAdapter(new ActivityAdapter(activities));
+    }
+
+    //define a viewholder that displays an activity's label.
+    //store the activity's ResolveInfo in a member variable for later use.
+    private class ActivityHolder extends RecyclerView.ViewHolder {
+        private ResolveInfo mResolveInfo;
+        private TextView mNameTextView;
+
+        public ActivityHolder(View itemView) {
+            super(itemView);
+            mNameTextView = (TextView) itemView;
+        }
+
+        public void bindActivity(ResolveInfo resolveInfo) {
+            mResolveInfo = resolveInfo;
+            PackageManager pm = getActivity().getPackageManager();
+            String appName = mResolveInfo.loadLabel(pm).toString();
+            mNameTextView.setText(appName);
+        }
+    }
+
+    //now to add a recyclerview.adapter implementation.
+    private class ActivityAdapter extends RecyclerView.Adapter<ActivityHolder> {
+        private final List<ResolveInfo> mActivities;
+
+        public ActivityAdapter(List<ResolveInfo> activities) {
+            mActivities = activities;
+        }
+
+        @Override
+        public ActivityHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            LayoutInflater layoutInflater = LayoutInflater.from(getActivity());
+            View view = layoutInflater.inflate(android.R.layout.simple_list_item_1, parent, false);
+            return new ActivityHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(ActivityHolder activityHolder, int position) {
+            ResolveInfo resolveInfo = mActivities.get(position);
+            activityHolder.bindActivity(resolveInfo);
+        }
+
+        @Override
+        public int getItemCount() {
+            return mActivities.size();
+        }
     }
 }
